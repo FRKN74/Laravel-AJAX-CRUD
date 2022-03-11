@@ -20,7 +20,17 @@
                 <div class="card">
                     <div class="card-header">Countries</div>
                     <div class="card-body">
-                        -----
+                        <table class="table table-hover table-condensed" id="countries-table">
+                            <thead>
+                                <th>#</th>
+                                <th>Country Name</th>
+                                <th>Capital Cİty</th>
+                                <th>Actions</th>
+                            </thead>
+                            <tbody>
+
+                            </tbody>
+                        </table>
                     </div>
                 </div>
             </div>
@@ -28,7 +38,7 @@
                 <div class="card">
                     <div class="card-header">Add New Country</div>
                     <div class="card-body">
-                        <form action="{{ route('add.country') }}" method="POST" id="adds-country-form">
+                        <form action="{{ route('add.country') }}" method="POST" id="country-add-form">
                             @csrf
                             <div class="form-group">
                                 <label for="">Country Name</label>
@@ -50,7 +60,7 @@
         </div>
     </div>
 
-
+    @include('edit-country-modal')
     <script src="{{ asset('jquery/jquery-3.6.0.min.js') }}"></script>
     <script src="{{ asset('bootstrap/js/bootstrap.min.js') }}"></script>
     <script src="{{ asset('bootstrap/js/bootstrap.bundle.min.js') }}"></script>
@@ -62,21 +72,25 @@
     <script>
         toastr.options.preventDublicates = true;
 
-        
+        $.ajaxSetup({
+            headers: {
+        'X-CSRF-TOKEN': $('meta[name="csrf-token"]').attr('content')
+        }
+    });
 
         $(function(){
 
             //ADD NEW COUNTRY
 
-            $('#adds-country-form').on('submit',function(e){
+            $('#country-add-form').on('submit',function(e){
                 e.preventDefault();
                 var form = this;
                 $.ajax({
-                    url:$(form).attr('action'),
-                    method:$(form).attr('method'),
-                    data:new FormData(form),
+                    url:$(form).attr('action'),     //formdaki url yi alır
+                    method:$(form).attr('method'),  //formdaki methodu alır
+                    data:new FormData(form),        // yeni form verisi oluiturur
                     processData:false,
-                    dataType:'json',
+                    dataType:'json',                // gelen veriyi json olarak döndürür
                     contentType:false,
                     beforeSend:function(){
                         $(form).find('span.error-text').text('');
@@ -89,11 +103,115 @@
                         }else{
                             $(form)[0].reset();
                             // alert(data.msg);
+                            $('#countries-table').DataTable().ajax.reload(null,false); // sayfayı yenilemeden tabloyu günceller reload atar
                             toastr.success(data.msg);
                         }
                     }
                 })
+            });
+
+            //GET COUNTRİES LİST
+
+            $('#countries-table').DataTable({
+                processing:true,
+                info:true,
+                ajax:"{{ route('get-countries-list') }}",
+                "pageLength":5,
+                "aLengthMenu":[[5,10,15,25,50,-1],[5,10,15,25,50,"All"]],
+                columns:[
+                    // {data:'id',name:'id'},
+                    {data:'DT_RowIndex',name:"DT_RowIndex"},
+                    {data:'country_name',name:'country_name'},
+                    {data:'capital_city',name:'capital_city'},
+                    {data:'actions',name:'actions'},
+                ]
             })
+
+            $(document).on('click','#editCountryBtn',function () {
+                var country_id = $(this).data('id');
+                $('.editCountry').find('form')[0].reset();
+                $('.editCountry').find('span.error-text').text('');
+
+                $.post("<?= route('get.country.details') ?>",{country_id:country_id},function(data){
+                    // alert(data.details.country_name);
+                    $('.editCountry').find('input[name="cid"]').val(data.details.id);
+                    $('.editCountry').find('input[name="country_name"]').val(data.details.country_name);
+                    $('.editCountry').find('input[name="capital_city"]').val(data.details.capital_city);
+                    $('.editCountry').modal('show');
+
+                },'json');
+            });
+
+            //UPDATE COUNTRY DETAİLS
+
+            $('#update-country-form').on('submit',function(e) { 
+                e.preventDefault();
+                
+                var form = this;
+
+                $.ajax({
+                    url:$(form).attr('action'),
+                    method:$(form).attr('method'),
+                    data:new FormData(form),
+                    processData:false,
+                    dataType:"json",
+                    contentType:false,
+                    beforeSend:function(){
+                        $(form).find('span.error-text').text('');
+                    },
+                    success:function(data) {
+                        if(data.code == 0){
+                            $.each(data.error, function (prefix, val) { 
+                                $(form).find('span.'+ prefix +'_error').text(val[0]);
+                            });
+                        }else{
+                            console.log('aktif');
+                            $('.editCountry').modal('hide');
+                            $('.editCountry').find('form')[0].reset();
+
+
+                            toastr.success(data.msg);
+                        }
+                    }
+                });
+                
+            });
+
+
+            //DELETE COUNTRY
+
+            $(document).on('click','#deleteCountry',function(){
+                var country_id = $(this).data('id');
+                // alert(country_id);
+
+                var url = "<?= route('delete.country') ?>";
+
+                swal.fire({
+
+                    title:"Emin misiniz?",
+                    html:"Bu veri <b>Silinecektir.</b>",
+                    showCancelButton:true,
+                    showCloseButton:true,
+                    cancelButtonText:"Çık",
+                    confirmButtonText:"Evet,Sil",
+                    cancelButtonColor:"#006db3",
+                    confirmButtonColor:"#8e0000",
+                    width:400,
+                    allowOutsideClicl:false
+
+                }).then(function (result){
+                    if (result.value) {
+                            $.post(url,{country_id:country_id},function(data){
+                                if (data.code == 1) {
+                                    $('#countries-table').DataTable().ajax.reload(null,false);
+                                    toastr.success(data.msg);
+                                }else{
+                                    toastr.error(data.msg);
+                                }
+                            })
+                    }
+                })
+            });
         });
     </script>
 </body>
