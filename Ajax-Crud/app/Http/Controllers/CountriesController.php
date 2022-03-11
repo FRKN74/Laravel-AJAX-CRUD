@@ -39,7 +39,7 @@ class CountriesController extends Controller
         }
     }
 
-    //COUNTRY LİST
+    // GET COUNTRY LİST
     public function getCountriesList()
     {
         $countries = Country::all();
@@ -51,7 +51,10 @@ class CountriesController extends Controller
                         <button class="btn btn-danger" data-id="'.$row['id'].'" id="deleteCountry">Delete</button>
                     </div>';
         })
-        ->rawColumns(['actions'])
+        ->addColumn('checkbox',function($row){
+            return '<input type="checkbox" name="country_checkbox" data-id="'.$row['id'].'"><label></label>';
+        })
+        ->rawColumns(['actions','checkbox'])
         ->make(true);
     }
     public function getCountryDetails(Request $request)
@@ -97,6 +100,12 @@ class CountriesController extends Controller
         }else{
             return response()->json(['code' =>0, 'msg'=>'Kayıt silinemedi eksik birşeyler var!!!']);
         }
+    }
+    public function deleteSelectedCountries(Request $request)
+    {
+        $country_ids = $request->countries_ids;
+        Country::whereIn('id',$country_ids)->delete();
+        return response()->json(['code' =>1 ,'msg' => 'Şeçili kutular silindi.']);
     }
     
 }

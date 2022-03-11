@@ -22,10 +22,13 @@
                     <div class="card-body">
                         <table class="table table-hover table-condensed" id="countries-table">
                             <thead>
+                                <th><input type="checkbox" name="main_checkbox" id="main_checkbox"><label></label></th>
                                 <th>#</th>
                                 <th>Country Name</th>
                                 <th>Capital Cİty</th>
-                                <th>Actions</th>
+                                <th>Actions
+                                    <button class="btn btn-sm btn-danger d-none" id="deleteAllBtn">Tümünü Sil</button>
+                                </th>
                             </thead>
                             <tbody>
 
@@ -120,12 +123,20 @@
                 "aLengthMenu":[[5,10,15,25,50,-1],[5,10,15,25,50,"All"]],
                 columns:[
                     // {data:'id',name:'id'},
+
+                    {data:'checkbox',name:"checkbox",orderable:false,searchable:false},
                     {data:'DT_RowIndex',name:"DT_RowIndex"},
                     {data:'country_name',name:'country_name'},
                     {data:'capital_city',name:'capital_city'},
-                    {data:'actions',name:'actions'},
+                    {data:'actions',name:'actions',orderable:false,searchable:false},
                 ]
-            })
+            }).on('draw',function(){
+                $('input[name="country_checkbox"]:checked').each(function (){this.checked= false;});
+                $('input[name="main_checkbox"]').prop('checked',false);
+                $('button#deleteAllBtn').addClass('d-none');
+            });
+
+
 
             $(document).on('click','#editCountryBtn',function () {
                 var country_id = $(this).data('id');
@@ -165,7 +176,7 @@
                                 $(form).find('span.'+ prefix +'_error').text(val[0]);
                             });
                         }else{
-                            console.log('aktif');
+                            $('#countries-table').DataTable().ajax.reload(null,false);
                             $('.editCountry').modal('hide');
                             $('.editCountry').find('form')[0].reset();
 
@@ -187,7 +198,6 @@
                 var url = "<?= route('delete.country') ?>";
 
                 swal.fire({
-
                     title:"Emin misiniz?",
                     html:"Bu veri <b>Silinecektir.</b>",
                     showCancelButton:true,
@@ -197,7 +207,7 @@
                     cancelButtonColor:"#006db3",
                     confirmButtonColor:"#8e0000",
                     width:400,
-                    allowOutsideClicl:false
+                    allowOutsideClick:false
 
                 }).then(function (result){
                     if (result.value) {
@@ -212,6 +222,72 @@
                     }
                 })
             });
+
+            $(document).on('click','input[name="main_checkbox"]',function () {
+                if (this.checked) {
+                    $('input[name="country_checkbox"]').each(function () {
+                        this.checked = true;
+                    });
+                }else{
+                    $('input[name="country_checkbox"]').each(function () {
+                        this.checked = false;
+                    });
+                }
+                toggledeleteAllBtn();
+            });
+            $(document).on('click','input[name="country_checkbox"]',function () {
+                if ($('input[name="country_checkbox"]').length == $('input[name="country_checkbox"]:checked').length) {
+                    $('input[name="main_checkbox"]').prop('checked',true);
+                }else{
+                    $('input[name="main_checkbox"]').prop('checked',false);
+                }
+                toggledeleteAllBtn();
+            });
+
+            function toggledeleteAllBtn(){
+                if($('input[name="country_checkbox"]:checked').length > 0){
+                    $('button#deleteAllBtn').text('Delete ('+$('input[name="country_checkbox"]:checked').length+')').removeClass('d-none');
+                }else{
+                    $('button#deleteAllBtn').addClass('d-none');
+                }
+            };
+
+            $(document).on('click','button#deleteAllBtn',function(){
+                var checkedCountries = [];
+                $('input[name="country_checkbox"]:checked').each(function () {
+                    checkedCountries.push($(this).data('id'));
+                });
+                console.log('geldi');
+                var url = "{{ route('delete.selected.countries') }}";
+                if (checkedCountries.length > 0) {
+                    swal.fire({
+                        title:"Silmek mi istiyorsun?",
+                        html:'Silmek istediğin kayıt <b>('+checkedCountries.lenght+')</b> şehir',
+                        showCancelButton:true,
+                        showCloseBButton:true,
+                        confirmButtonText:'Evet,sil',
+                        cancelButtonText:'Çık',
+                        cancelButtonColor:"#006db3",
+                        confirmButtonColor:"#8e0000",
+                        width:400,
+                        allowOutsideClick:false
+                    }).then(function(result){
+                        if (result.value) {
+                            $.post(url,{countries_ids:checkedCountries},function(data){
+                                if (data.code == 1) {
+                                    $('#countries-table').DataTable().ajax.reload(null,true);
+                                    toastr.success(data.msg);
+                                }
+                            },'json');
+                        }
+                    })
+                }
+
+            });
+
+
+
+            
         });
     </script>
 </body>
