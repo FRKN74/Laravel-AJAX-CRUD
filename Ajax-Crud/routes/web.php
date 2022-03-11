@@ -19,3 +19,4 @@ Route::get('/', function () {
 });
 
 Route::get('/countries-list',[CountriesController::class,'index'])->name('countries-list');
+Route::post('/add-country',[CountriesController::class,'addCountry'])->name('add.country');

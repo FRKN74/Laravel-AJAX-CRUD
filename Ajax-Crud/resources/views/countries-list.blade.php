@@ -28,14 +28,17 @@
                 <div class="card">
                     <div class="card-header">Add New Country</div>
                     <div class="card-body">
-                        <form action="">
+                        <form action="{{ route('add.country') }}" method="POST" id="adds-country-form">
+                            @csrf
                             <div class="form-group">
                                 <label for="">Country Name</label>
                                 <input type="text" class="form-control" name="country_name" placeholder="Enter country name">
+                                <span class="text-danger error-text country_name_error"></span>
                             </div>
                             <div class="form-group">
                                 <label for="">Capital City</label>
                                 <input type="text" class="form-control" name="capital_city" placeholder="Enter capital city">
+                                <span class="text-danger error-text capital_city_error"></span>
                             </div>
                             <div class="form-group">
                                 <button type="submit" class="btn btn-success btn-block">Save</button>
@@ -57,12 +60,40 @@
     <script src="{{ asset('toastr/toastr.min.js') }}"></script>
 
     <script>
-        toastr.options.preventDublicate = true;
+        toastr.options.preventDublicates = true;
 
-        $.ajaxSetup({
-            headers:{
-                'X-CSRF-TOKEN':$('meta[name="csrf-token"]').attr('content');
-            }
+        
+
+        $(function(){
+
+            //ADD NEW COUNTRY
+
+            $('#adds-country-form').on('submit',function(e){
+                e.preventDefault();
+                var form = this;
+                $.ajax({
+                    url:$(form).attr('action'),
+                    method:$(form).attr('method'),
+                    data:new FormData(form),
+                    processData:false,
+                    dataType:'json',
+                    contentType:false,
+                    beforeSend:function(){
+                        $(form).find('span.error-text').text('');
+                    },
+                    success:function(data){
+                        if(data.code == 0){
+                            $.each(data.error, function (prefix, val) { 
+                                $(form).find('span.'+prefix+'_error').text(val[0]);
+                            });
+                        }else{
+                            $(form)[0].reset();
+                            // alert(data.msg);
+                            toastr.success(data.msg);
+                        }
+                    }
+                })
+            })
         });
     </script>
 </body>
