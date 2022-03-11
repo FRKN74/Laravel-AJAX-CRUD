@@ -257,12 +257,11 @@
                 $('input[name="country_checkbox"]:checked').each(function () {
                     checkedCountries.push($(this).data('id'));
                 });
-                console.log('geldi');
                 var url = "{{ route('delete.selected.countries') }}";
                 if (checkedCountries.length > 0) {
                     swal.fire({
                         title:"Silmek mi istiyorsun?",
-                        html:'Silmek istediğin kayıt <b>('+checkedCountries.lenght+')</b> şehir',
+                        html:'Silmek istediğin kayıt <b>('+checkedCountries.length+')</b> şehir',
                         showCancelButton:true,
                         showCloseBButton:true,
                         confirmButtonText:'Evet,sil',
